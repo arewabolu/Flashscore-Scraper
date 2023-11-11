@@ -105,12 +105,12 @@ func VisitSite(appConfig *AppConfig) string {
 	var isElementPresent bool
 	err := chromedp.Run(newCtx,
 		// navigate to a page,
-		chromedp.Navigate(appConfig.genUrl()),
+		chromedp.Navigate(appConfig.GenUrl()),
 		// wait for footer element i.e, page is loaded
 		chromedp.WaitVisible(`body > footer`),
 	)
 	if err != nil {
-		appConfig.Log.DebugContext(newCtx, fmt.Sprintf("%s could not load", appConfig.genUrl()))
+		appConfig.Log.DebugContext(newCtx, fmt.Sprintf("%s could not load", appConfig.GenUrl()))
 	}
 
 	//evaluate javascript scroll and click
