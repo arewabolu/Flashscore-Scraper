@@ -1,4 +1,4 @@
-module scraper
+module github.com/arewabolu/Flashscore-Scraper
 
 go 1.18
 
