@@ -33,10 +33,10 @@ type Config struct {
 	save    string
 }
 
-func (a *AppConfig) genUrl() string {
+func (a *AppConfig) GenUrl() string {
 	return fmt.Sprintf("https://www.flashscore.com/%s/%s/%s-%s/results/", a.Cfg.sport, a.Cfg.country, a.Cfg.league, a.Cfg.season)
 }
-func (c *Config) genUrl() string {
+func (c *Config) genFilePath() string {
 	return fmt.Sprintf("/%s-%s-%s.csv", c.country, c.league, c.season)
 }
 
@@ -73,8 +73,8 @@ func main() {
 	} else {
 		matches = generator(html, cfg.season, false)
 	}
-	writeHeader([]string{"date", "homeTeam", "awayTeam", "homeScore", "awayScore"}, fmt.Sprintf("%s/%s", wd, cfg.genUrl()))
-	writer(matches, fmt.Sprintf("%s/%s", wd, cfg.genUrl()))
+	writeHeader([]string{"date", "homeTeam", "awayTeam", "homeScore", "awayScore"}, fmt.Sprintf("%s/%s", wd, cfg.genFilePath()))
+	writer(matches, fmt.Sprintf("%s/%s", wd, cfg.genFilePath()))
 }
 
 func VisitSite(appConfig *AppConfig) string {
