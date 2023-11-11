@@ -185,7 +185,7 @@ func WriteBody(data []string, file string) error {
 }
 
 func getLastDate(file string, ch chan<- int) {
-	frame, _ := csvmanager.ReadCsv(file, 0755, true)
+	frame, _ := csvmanager.ReadCsv(file, true)
 	dates := frame.Col("date").String()
 	lastDate := dates[len(dates)-1]
 	var sep []string
