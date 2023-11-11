@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -14,31 +13,12 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/arewabolu/Flashscore-Scraper/config"
+	"github.com/arewabolu/Flashscore-Scraper/scraper"
 	gohaskell "github.com/arewabolu/GoHaskell"
 	"github.com/arewabolu/csvmanager"
-	"github.com/chromedp/chromedp"
 	"github.com/gocolly/colly"
 )
-
-type AppConfig struct {
-	Cfg *Config
-	Log *slog.Logger
-}
-
-type Config struct {
-	sport   string
-	country string
-	league  string
-	season  string
-	save    string
-}
-
-func (a *AppConfig) GenUrl() string {
-	return fmt.Sprintf("https://www.flashscore.com/%s/%s/%s-%s/results/", a.Cfg.sport, a.Cfg.country, a.Cfg.league, a.Cfg.season)
-}
-func (c *Config) genFilePath() string {
-	return fmt.Sprintf("/%s-%s-%s.csv", c.country, c.league, c.season)
-}
 
 func main() {
 	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -51,91 +31,30 @@ func main() {
 		logger.Error("unable to get current working directory")
 	}
 
-	var cfg Config
-	flag.StringVar(&cfg.country, "country", "", "set country for the league")
-	flag.StringVar(&cfg.league, "league", "", "choose league to get match results")
-	flag.StringVar(&cfg.sport, "sport", "", "available sports are:football,basketball,hockey,...")
-	flag.StringVar(&cfg.season, "season", "", "set season to search for match results.\n Multi-year seasons should be of the form `start-end`\n e.g `2012-2022`")
-	flag.StringVar(&cfg.save, "save", wd, "saves file as csv to specified directory, default value is the present working directory")
+	var cfg config.Config
+	flag.StringVar(&cfg.Country, "country", "", "set country for the league")
+	flag.StringVar(&cfg.League, "league", "", "choose league to get match results")
+	flag.StringVar(&cfg.Sport, "sport", "", "available sports are:football,basketball,hockey,...")
+	flag.StringVar(&cfg.Season, "season", "", "set season to search for match results.\n Multi-year seasons should be of the form `start-end`\n e.g `2012-2022`")
+	flag.StringVar(&cfg.Save, "save", wd, "saves file as csv to specified directory, default value is the present working directory")
 	flag.String("help", "", "show this help dialog")
 
 	flag.Parse()
 
-	appConfig := &AppConfig{
+	appConfig := &config.AppConfig{
 		Cfg: &cfg,
 		Log: logger,
 	}
 	var matches []Match
-	html := VisitSite(appConfig)
-	if strings.Contains(cfg.season, "-") {
-		splitYear := strings.Split(cfg.season, "-")
+	html := scraper.VisitSite(appConfig)
+	if strings.Contains(cfg.Season, "-") {
+		splitYear := strings.Split(cfg.Season, "-")
 		matches = generator(html, splitYear[0], true)
 	} else {
-		matches = generator(html, cfg.season, false)
+		matches = generator(html, cfg.Season, false)
 	}
-	writeHeader([]string{"date", "homeTeam", "awayTeam", "homeScore", "awayScore"}, fmt.Sprintf("%s/%s", wd, cfg.genFilePath()))
-	writer(matches, fmt.Sprintf("%s/%s", wd, cfg.genFilePath()))
-}
-
-func VisitSite(appConfig *AppConfig) string {
-	showMoreAction :=
-		`
-	 (async function() {
-		 while (true) {
-   			try {
-        		await new Promise((resolve) => setTimeout(resolve, 1500));
-       			const element = document.querySelector(
-          		"a.event__more.event__more--static"
-        	);
-        	element.scrollIntoView();
-        	element.click();
-    		} catch (error) {
-      			break;
-    		}
-  		}
-	})();
-		`
-	newCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
-	defer cancel()
-
-	newCtx, cancel = chromedp.NewContext(newCtx)
-	defer cancel()
-
-	var html string
-	var isElementPresent bool
-	err := chromedp.Run(newCtx,
-		// navigate to a page,
-		chromedp.Navigate(appConfig.GenUrl()),
-		// wait for footer element i.e, page is loaded
-		chromedp.WaitVisible(`body > footer`),
-	)
-	if err != nil {
-		appConfig.Log.DebugContext(newCtx, fmt.Sprintf("%s could not load", appConfig.GenUrl()))
-	}
-
-	//evaluate javascript scroll and click
-	err = chromedp.Run(
-		newCtx,
-		chromedp.Evaluate(showMoreAction, nil),
-	)
-	if err != nil {
-		appConfig.Log.Error(err.Error())
-	}
-
-	//wait for action to complete since async is not supported
-	time.Sleep(7 * time.Second)
-
-	err = chromedp.Run(newCtx, chromedp.Evaluate(`!!document.querySelector("a.event__more.event__more--static")`, &isElementPresent))
-	if err != nil {
-		appConfig.Log.Error(err.Error())
-	}
-
-	err = chromedp.Run(newCtx, chromedp.InnerHTML(`.leagues--static.event--leagues.results`, &html, chromedp.AtLeast(1)))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return html
+	writeHeader([]string{"date", "homeTeam", "awayTeam", "homeScore", "awayScore"}, fmt.Sprintf("%s/%s", wd, cfg.GenFilePath()))
+	writer(matches, fmt.Sprintf("%s/%s", wd, cfg.GenFilePath()))
 }
 
 // Getter visits the Url,
