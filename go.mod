@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/arewabolu/GoHaskell v0.0.6
-	github.com/arewabolu/csvmanager v1.5.1
+	github.com/arewabolu/csvmanager v1.1.0
 	github.com/chromedp/chromedp v0.9.3
 	github.com/gocolly/colly v1.2.0
 	github.com/headzoo/surf v1.0.1
