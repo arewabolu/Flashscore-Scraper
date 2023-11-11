@@ -11,6 +11,7 @@ type Config struct {
 	League  string
 	Season  string
 	Save    string
+	TimeOut uint
 }
 
 func (c *Config) GenFilePath() string {

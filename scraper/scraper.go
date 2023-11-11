@@ -28,7 +28,7 @@ func VisitSite(appConfig *config.AppConfig) string {
   		}
 	})();
 		`
-	newCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	newCtx, cancel := context.WithTimeout(context.Background(), time.Duration(appConfig.Cfg.TimeOut)*time.Second)
 	defer cancel()
 
 	newCtx, cancel = chromedp.NewContext(newCtx)

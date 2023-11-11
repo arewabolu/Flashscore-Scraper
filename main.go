@@ -32,12 +32,13 @@ func main() {
 	}
 
 	var cfg config.Config
-	flag.StringVar(&cfg.Country, "country", "", "set country for the league")
+	flag.StringVar(&cfg.Country, "c", "", "set country for the league")
 	flag.StringVar(&cfg.League, "league", "", "choose league to get match results")
 	flag.StringVar(&cfg.Sport, "sport", "", "available sports are:football,basketball,hockey,...")
 	flag.StringVar(&cfg.Season, "season", "", "set season to search for match results.\n Multi-year seasons should be of the form `start-end`\n e.g `2012-2022`")
-	flag.StringVar(&cfg.Save, "save", wd, "saves file as csv to specified directory, default value is the present working directory")
-	flag.String("help", "", "show this help dialog")
+	flag.StringVar(&cfg.Save, "path", wd, "saves file as csv to specified directory, default value is the present directory")
+	flag.UintVar(&cfg.TimeOut, "t", 30, "timeout (in seconds) for request. default 30")
+	flag.String("h", "", "show this help dialog")
 
 	flag.Parse()
 
