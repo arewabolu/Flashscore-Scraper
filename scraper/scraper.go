@@ -255,8 +255,8 @@ func generateDOM(html string) *goquery.Document {
 func GetBasicMatchData(dom *goquery.Document) MatchInfo {
 	matchInfo := &MatchInfo{}
 	matchInfo.Date = strings.SplitAfter(dom.Find("div.duelParticipant__startTime").Text(), " ")[0]
-	matchInfo.Hometeam = dom.Find("div.duelParticipant__home").Find("a.participant__participantName").Text()
-	matchInfo.Awayteam = dom.Find("div.duelParticipant__away").Find("a.participant__participantName").Text()
+	matchInfo.Hometeam = removeCountry(dom.Find("div.duelParticipant__home").Find("a.participant__participantName").Text())
+	matchInfo.Awayteam = removeCountry(dom.Find("div.duelParticipant__away").Find("a.participant__participantName").Text())
 
 	dom.Find("div.duelParticipant__score").Find("div.detailScore__wrapper").Each(
 		func(i int, s *goquery.Selection) {
