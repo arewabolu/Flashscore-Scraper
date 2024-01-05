@@ -6,16 +6,20 @@ import (
 )
 
 type Config struct {
-	Sport   string
-	Country string
-	League  string
-	Season  string
-	Save    string
-	TimeOut uint
+	FileName string
+	Sport    string
+	Country  string
+	League   string
+	Season   string
+	Path     string
+	TimeOut  uint
 }
 
 func (c *Config) GenFilePath() string {
-	return fmt.Sprintf("/%s-%s-%s.csv", c.Country, c.League, c.Season)
+	if c.FileName != "" {
+		return c.FileName
+	}
+	return fmt.Sprintf("%s-%s-%s.csv", c.Country, c.League, c.Season)
 }
 
 type AppConfig struct {
@@ -32,7 +36,7 @@ func NewAppConfig(cfg Config) *AppConfig {
 }
 
 func NewConfig() *Config {
-	return &Config{}
+	return &Config{Sport: "football"}
 }
 
 func (c *Config) SetSport(sport string) {
