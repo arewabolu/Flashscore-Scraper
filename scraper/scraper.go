@@ -131,7 +131,7 @@ func GetMatchesWithExtraData(appConfig *config.AppConfig) error {
 	matchInfos := make([]MatchInfo, 0)
 	matchIds := GetMatchIds(appConfig.GenUrl())
 	for _, matchId := range matchIds {
-		html := GetMatchData(matchId)
+		html := GetMatchData(matchId, FlashscoreStat)
 		dom := generateDOM(html)
 		info := GetBasicMatchData(dom)
 		matchInfos = append(matchInfos, parseDom(&info, dom))
@@ -222,8 +222,16 @@ func GetMatchIds(url string) []string {
 	return divIds
 }
 
-func GetMatchData(matchId string) string {
-	url := fmt.Sprintf("https://www.soccer24.com/match/%s/#/match-summary/match-statistics/0", matchId)
+func Flashscore(matchId string) string {
+	return fmt.Sprintf("https://www.flashscore.com/match/%s/#/match-summary", matchId)
+}
+
+func FlashscoreStat(matchId string) string {
+	return fmt.Sprintf("https://www.flashscore.com/match/%s/#/match-summary/match-statistics/0", matchId)
+}
+
+func GetMatchData(matchId string, urlFunc func(string) string) string {
+	url := urlFunc(matchId)
 	idCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	idCtx, cancel = chromedp.NewContext(idCtx)
