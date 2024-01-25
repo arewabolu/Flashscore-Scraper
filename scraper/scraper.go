@@ -23,7 +23,7 @@ const (
 	DangerousAttacksIndex int = 14
 )
 
-func VisitSite(appConfig *config.AppConfig) string {
+func VisitSite(appConfig *config.AppConfig) (string, error) {
 	showMoreAction :=
 		`
 	 (async function() {
@@ -78,14 +78,17 @@ func VisitSite(appConfig *config.AppConfig) string {
 
 	err = chromedp.Run(newCtx, chromedp.InnerHTML(`.leagues--static.event--leagues.results`, &html, chromedp.AtLeast(1)))
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
-	return html
+	return html, nil
 }
 
 func GetBasicMatchInfo(appConfig *config.AppConfig) error {
-	html := VisitSite(appConfig)
+	html, err := VisitSite(appConfig)
+	if err != nil {
+		return err
+	}
 	var matches []match
 	if strings.Contains(appConfig.Cfg.Season, "-") {
 		splitYear := strings.Split(appConfig.Cfg.Season, "-")
@@ -95,7 +98,7 @@ func GetBasicMatchInfo(appConfig *config.AppConfig) error {
 	}
 
 	header := [5]string{"date", "homeTeam", "awayTeam", "homeScore", "awayScore"}
-	err := writeHeader(header[:], fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
+	err = writeHeader(header[:], fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
 	if err != nil {
 		return err
 	}
@@ -108,11 +111,14 @@ func GetBasicMatchInfo(appConfig *config.AppConfig) error {
 }
 
 func GetHalfMatchInfo(appConfig *config.AppConfig) error {
-	html := VisitSite(appConfig)
+	html, err := VisitSite(appConfig)
+	if err != nil {
+		return err
+	}
 	year, val := checkSeason(appConfig.Cfg.Season)
 	matches := Generator2(html, year, val)
 	header := [9]string{"date", "homeTeam", "awayTeam", "homeScore 1st half", "awayScore 1st half", "homeScore 2nd half", "awayScore 2nd half", "homeScore", "awayScore"}
-	err := writeHeader(header[:], fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
+	err = writeHeader(header[:], fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
 	if err != nil {
 		return err
 	}
@@ -225,6 +231,8 @@ func GetMatchIds(url string) []string {
 func Flashscore(matchId string) string {
 	return fmt.Sprintf("https://www.flashscore.com/match/%s/#/match-summary", matchId)
 }
+
+//https://www.flashscore.com/match/ns2qTfdf/#/match-summary
 
 func FlashscoreStat(matchId string) string {
 	return fmt.Sprintf("https://www.flashscore.com/match/%s/#/match-summary/match-statistics/0", matchId)
