@@ -28,7 +28,7 @@ type AppConfig struct {
 }
 
 func (a *AppConfig) GenUrl() string {
-	return fmt.Sprintf("https://www.flashscore.com.ng/%s/%s/%s-%s/results/", a.Cfg.Sport, a.Cfg.Country, a.Cfg.League, a.Cfg.Season)
+	return fmt.Sprintf("https://www.flashscore.com/%s/%s/%s-%s/results/", a.Cfg.Sport, a.Cfg.Country, a.Cfg.League, a.Cfg.Season)
 }
 
 func NewAppConfig(cfg Config) *AppConfig {
