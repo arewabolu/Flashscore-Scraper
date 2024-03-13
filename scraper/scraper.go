@@ -23,7 +23,8 @@ const (
 	DangerousAttacksIndex int = 14
 )
 
-func VisitSite(appConfig *config.AppConfig) (string, error) {
+// use fixtures to setup url to either visit the results or fixtures page
+func VisitSite(appConfig *config.AppConfig, fixtures bool) (string, error) {
 	showMoreAction :=
 		`
 	 (async function() {
@@ -49,14 +50,16 @@ func VisitSite(appConfig *config.AppConfig) (string, error) {
 
 	var html string
 	var isElementPresent bool
+	url := appConfig.GenUrl(fixtures)
+
 	err := chromedp.Run(newCtx,
 		// navigate to a page,
-		chromedp.Navigate(appConfig.GenUrl()),
+		chromedp.Navigate(url),
 		// wait for footer element i.e, page is loaded
 		chromedp.WaitVisible(`body > footer`),
 	)
 	if err != nil {
-		appConfig.Log.DebugContext(newCtx, fmt.Sprintf("%s could not load", appConfig.GenUrl()))
+		appConfig.Log.DebugContext(newCtx, fmt.Sprintf("%s could not load", url))
 	}
 
 	//evaluate javascript scroll and click
@@ -76,7 +79,7 @@ func VisitSite(appConfig *config.AppConfig) (string, error) {
 		appConfig.Log.Error(err.Error())
 	}
 
-	err = chromedp.Run(newCtx, chromedp.InnerHTML(`.leagues--static.event--leagues.results`, &html, chromedp.AtLeast(1)))
+	err = chromedp.Run(newCtx, chromedp.InnerHTML(`div.leagues--static`, &html, chromedp.AtLeast(1)))
 	if err != nil {
 		return "", err
 	}
@@ -84,17 +87,17 @@ func VisitSite(appConfig *config.AppConfig) (string, error) {
 	return html, nil
 }
 
-func GetBasicMatchInfo(appConfig *config.AppConfig) error {
-	html, err := VisitSite(appConfig)
+func GetBasicMatchInfo(appConfig *config.AppConfig, fixtures bool) error {
+	html, err := VisitSite(appConfig, fixtures)
 	if err != nil {
 		return err
 	}
 	var matches []match
 	if strings.Contains(appConfig.Cfg.Season, "-") {
 		splitYear := strings.Split(appConfig.Cfg.Season, "-")
-		matches = generator(html, splitYear[0], true)
+		matches = Generator(html, splitYear[0], true)
 	} else {
-		matches = generator(html, appConfig.Cfg.Season, false)
+		matches = Generator(html, appConfig.Cfg.Season, false)
 	}
 
 	header := [5]string{"date", "homeTeam", "awayTeam", "homeScore", "awayScore"}
@@ -110,8 +113,9 @@ func GetBasicMatchInfo(appConfig *config.AppConfig) error {
 	return nil
 }
 
-func GetHalfMatchInfo(appConfig *config.AppConfig) error {
-	html, err := VisitSite(appConfig)
+// use fixtures to setup url to either visit the results or fixtures page
+func GetHalfMatchInfo(appConfig *config.AppConfig, fixtures bool) error {
+	html, err := VisitSite(appConfig, fixtures)
 	if err != nil {
 		return err
 	}
@@ -131,30 +135,7 @@ func GetHalfMatchInfo(appConfig *config.AppConfig) error {
 	return nil
 }
 
-// GetMatchesWithExtraData scrapes flashscore url specified by appConfig,
-// generating a list of matches and some extra data before writing to the file specified by appConfig
-func GetMatchesWithExtraData(appConfig *config.AppConfig) error {
-	matchInfos := make([]MatchInfo, 0)
-	matchIds := GetMatchIds(appConfig.GenUrl())
-	for _, matchId := range matchIds {
-		html := GetMatchData(matchId, FlashscoreStat)
-		dom := generateDOM(html)
-		info := GetBasicMatchData(dom)
-		matchInfos = append(matchInfos, parseDom(&info, dom))
-	}
-	header := []string{"date", "homeTeam", "awayTeam", "homeScore", "awayScore", "HT Poss.", "HT Shots", "HT Shots OT", "HT Shots Off", "HT Corners", "HT Saves", "HT Dangerous Attacks", "AT Poss.", "AT Shots", "AT Shots OT", "AT Shots Off", "AT Corners", "AT Saves", "AT Dangerous Attacks"}
-	err := writeHeader(header, fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
-	if err != nil {
-		return err
-	}
-	reverseMatches := gohaskell.Reverse(matchInfos)
-	err = WriteBody(stringifyMatchInfo(reverseMatches), fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
+/*
 func GetMatchIds(url string) []string {
 	var divIDs []string
 	getDivIds := `(() => {
@@ -251,6 +232,7 @@ func GetMatchData(matchId string, urlFunc func(string) string) string {
 	}
 	return html
 }
+*/
 
 func generateDOM(html string) *goquery.Document {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))

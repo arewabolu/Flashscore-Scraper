@@ -13,7 +13,7 @@ import (
 	"github.com/gocolly/colly"
 )
 
-func generator(html, year string, summerStart bool) []match {
+func Generator(html, year string, summerStart bool) []match {
 	buf := bytes.NewBufferString(html)
 	query, err := goquery.NewDocumentFromReader(buf)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -151,22 +152,35 @@ func TestHeadless(t *testing.T) {
 	//t.Error(data)
 }
 
+func TestSplitAfter(t *testing.T) {
+	str := "arewa- - Bolu"
+	splited := strings.SplitAfter(str, " ")
+	numWorkers := runtime.NumCPU()
+	t.Error(len(splited), splited, numWorkers)
+}
+
 func Test2HalvesData(t *testing.T) {
 	cfg := config.NewConfig()
-	cfg.SetCountry("england")
+	cfg.SetCountry("portugal")
 	cfg.SetSport("football")
-	cfg.SetLeague("premier-league")
-	cfg.SetSeason("2022-2023")
+	cfg.SetLeague("liga-portugal")
+	cfg.SetSeason("2023-2024")
 	cfg.TimeOut = 100
+	//cfg.TimeOut = 100
 	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 	logger := slog.New(handler)
 	appCfg := config.NewAppConfig(*cfg)
 	appCfg.Log = logger
-	html := scraper.VisitSite(appCfg)
+	html, err := scraper.VisitSite(appCfg, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Error("continuing test")
 	splitYear := strings.Split(cfg.Season, "-")
-	matches := scraper.Generator2(html, splitYear[0], true)
+	matches := scraper.Generator(html, splitYear[0], true)
 	reverse := gohaskell.Reverse(matches)
 	t.Error(reverse[10].String())
 	//dom := scraper.GenerateDOM(html)

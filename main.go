@@ -20,16 +20,17 @@ func main() {
 		logger.Error("unable to get current working directory")
 	}
 
-	var detailed bool
+	var detailed, fixtures bool
 
 	cfg := config.NewConfig()
 	flag.StringVar(&cfg.Country, "c", "", "set country for the league")
 	flag.StringVar(&cfg.League, "league", "", "choose league to get match results")
 	flag.StringVar(&cfg.Season, "season", "", "set season to search for match results.\n Multi-year seasons should be of the form `start-end`\n e.g `2012-2022`")
 	flag.StringVar(&cfg.Path, "path", wd, "saves file as csv to specified directory, default value is the present directory")
-	flag.StringVar(&cfg.FileName, "f", cfg.GenFilePath(), "name of the file to be saved,defaults to country-league-season.csv. I.e. the country-league-season must be specified")
+	flag.StringVar(&cfg.FileName, "F", cfg.GenFilePath(), "name of the file to be saved,defaults to country-league-season.csv. I.e. the country-league-season must be specified")
 	flag.UintVar(&cfg.TimeOut, "t", 30, "timeout (in seconds) for request. default 30")
 	flag.BoolVar(&detailed, "d", false, "")
+	flag.BoolVar(&fixtures, "f", false, "use to load fixtures instead of results")
 	flag.String("h", "", "show this help dialog")
 
 	flag.Parse()
@@ -41,9 +42,9 @@ func main() {
 
 	switch {
 	case detailed:
-		scraper.GetMatchesWithExtraData(appConfig)
+		//scraper.GetMatchesWithExtraData(appConfig)
 	default:
-		scraper.GetBasicMatchInfo(appConfig)
+		scraper.GetBasicMatchInfo(appConfig, fixtures)
 	}
 
 }

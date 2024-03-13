@@ -27,7 +27,11 @@ type AppConfig struct {
 	Log *slog.Logger
 }
 
-func (a *AppConfig) GenUrl() string {
+// use fixtures to setup url to either visit the results or fixtures page
+func (a *AppConfig) GenUrl(fixtures bool) string {
+	if fixtures {
+		return fmt.Sprintf("https://www.flashscore.com/%s/%s/%s/fixtures/", a.Cfg.Sport, a.Cfg.Country, a.Cfg.League)
+	}
 	return fmt.Sprintf("https://www.flashscore.com/%s/%s/%s-%s/results/", a.Cfg.Sport, a.Cfg.Country, a.Cfg.League, a.Cfg.Season)
 }
 
