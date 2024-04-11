@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log/slog"
 )
 
 type Config struct {
@@ -22,21 +21,12 @@ func (c *Config) GenFilePath() string {
 	return fmt.Sprintf("%s-%s-%s.csv", c.Country, c.League, c.Season)
 }
 
-type AppConfig struct {
-	Cfg *Config
-	Log *slog.Logger
-}
-
 // use fixtures to setup url to either visit the results or fixtures page
-func (a *AppConfig) GenUrl(fixtures bool) string {
+func (c *Config) GenUrl(fixtures bool) string {
 	if fixtures {
-		return fmt.Sprintf("https://www.flashscore.com/%s/%s/%s/fixtures/", a.Cfg.Sport, a.Cfg.Country, a.Cfg.League)
+		return fmt.Sprintf("https://www.flashscore.com/%s/%s/%s/fixtures/", c.Sport, c.Country, c.League)
 	}
-	return fmt.Sprintf("https://www.flashscore.com/%s/%s/%s-%s/results/", a.Cfg.Sport, a.Cfg.Country, a.Cfg.League, a.Cfg.Season)
-}
-
-func NewAppConfig(cfg Config) *AppConfig {
-	return &AppConfig{Cfg: &cfg}
+	return fmt.Sprintf("https://www.flashscore.com/%s/%s/%s-%s/results/", c.Sport, c.Country, c.League, c.Season)
 }
 
 func NewConfig() *Config {
