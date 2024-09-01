@@ -25,7 +25,8 @@ const (
 )
 
 // use fixtures to setup url to either visit the results or fixtures page
-func VisitSite(appConfig *config.Config, fixtures bool) (string, error) {
+// Note: the context to be passed must be a chain of chromedp.Context.
+func VisitSite(ctx context.Context, appConfig *config.Config, fixtures bool) (string, error) {
 	showMoreAction :=
 		`
 	 (async function() {
@@ -43,10 +44,7 @@ func VisitSite(appConfig *config.Config, fixtures bool) (string, error) {
   		}
 	})();
 		`
-	newCtx, cancel := context.WithTimeout(context.Background(), time.Duration(appConfig.TimeOut)*time.Second)
-	defer cancel()
-
-	newCtx, cancel = chromedp.NewContext(newCtx)
+	newCtx, cancel := context.WithTimeout(ctx, time.Duration(appConfig.TimeOut)*time.Second)
 	defer cancel()
 
 	var html string
@@ -87,7 +85,7 @@ func VisitSite(appConfig *config.Config, fixtures bool) (string, error) {
 }
 
 func GetBasicMatchInfo(appConfig *config.Config, fixtures bool) error {
-	html, err := VisitSite(appConfig, fixtures)
+	html, err := VisitSite(context.Background(), appConfig, fixtures)
 	if err != nil {
 		return err
 	}
@@ -114,7 +112,7 @@ func GetBasicMatchInfo(appConfig *config.Config, fixtures bool) error {
 
 // use fixtures to setup url to either visit the results or fixtures page
 func GetHalfMatchInfo(appConfig *config.Config, fixtures bool) error {
-	html, err := VisitSite(appConfig, fixtures)
+	html, err := VisitSite(context.Background(), appConfig, fixtures)
 	if err != nil {
 		return err
 	}
