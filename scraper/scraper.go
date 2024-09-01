@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -24,7 +25,8 @@ const (
 )
 
 // use fixtures to setup url to either visit the results or fixtures page
-func VisitSite(appConfig *config.AppConfig, fixtures bool) (string, error) {
+// Note: the context to be passed must be a chain of chromedp.Context.
+func VisitSite(ctx context.Context, appConfig *config.Config, fixtures bool) (string, error) {
 	showMoreAction :=
 		`
 	 (async function() {
@@ -42,10 +44,7 @@ func VisitSite(appConfig *config.AppConfig, fixtures bool) (string, error) {
   		}
 	})();
 		`
-	newCtx, cancel := context.WithTimeout(context.Background(), time.Duration(appConfig.Cfg.TimeOut)*time.Second)
-	defer cancel()
-
-	newCtx, cancel = chromedp.NewContext(newCtx)
+	newCtx, cancel := context.WithTimeout(ctx, time.Duration(appConfig.TimeOut)*time.Second)
 	defer cancel()
 
 	var html string
@@ -56,27 +55,25 @@ func VisitSite(appConfig *config.AppConfig, fixtures bool) (string, error) {
 		// navigate to a page,
 		chromedp.Navigate(url),
 		// wait for footer element i.e, page is loaded
-		chromedp.WaitVisible(`body > footer`),
+		chromedp.WaitVisible(`body>footer`),
 	)
 	if err != nil {
-		appConfig.Log.DebugContext(newCtx, fmt.Sprintf("%s could not load", url))
+		return "", errors.Join(err, fmt.Errorf("%s could not load", url))
 	}
-
 	//evaluate javascript scroll and click
 	err = chromedp.Run(
 		newCtx,
 		chromedp.Evaluate(showMoreAction, nil),
 	)
 	if err != nil {
-		appConfig.Log.Error(err.Error())
+		return "", errors.Join(err, errors.New("unable to evaluate show more action"))
 	}
 
 	//wait for action to complete since async is not supported
-	time.Sleep(7 * time.Second)
-
-	err = chromedp.Run(newCtx, chromedp.Evaluate(`!!document.querySelector("a.event__more.event__more--static")`, &isElementPresent))
+	time.Sleep(10 * time.Second)
+	err = chromedp.Run(newCtx, chromedp.Evaluate(`document.querySelector("a.event__more.event__more--static") !== null`, &isElementPresent))
 	if err != nil {
-		appConfig.Log.Error(err.Error())
+		return "", err
 	}
 
 	err = chromedp.Run(newCtx, chromedp.InnerHTML(`div.leagues--static`, &html, chromedp.AtLeast(1)))
@@ -87,26 +84,26 @@ func VisitSite(appConfig *config.AppConfig, fixtures bool) (string, error) {
 	return html, nil
 }
 
-func GetBasicMatchInfo(appConfig *config.AppConfig, fixtures bool) error {
-	html, err := VisitSite(appConfig, fixtures)
+func GetBasicMatchInfo(appConfig *config.Config, fixtures bool) error {
+	html, err := VisitSite(context.Background(), appConfig, fixtures)
 	if err != nil {
 		return err
 	}
 	var matches []match
-	if strings.Contains(appConfig.Cfg.Season, "-") {
-		splitYear := strings.Split(appConfig.Cfg.Season, "-")
+	if strings.Contains(appConfig.Season, "-") {
+		splitYear := strings.Split(appConfig.Season, "-")
 		matches = Generator(html, splitYear[0], true)
 	} else {
-		matches = Generator(html, appConfig.Cfg.Season, false)
+		matches = Generator(html, appConfig.Season, false)
 	}
 
 	header := [5]string{"date", "homeTeam", "awayTeam", "homeScore", "awayScore"}
-	err = writeHeader(header[:], fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
+	err = writeHeader(header[:], fmt.Sprintf("%s/%s", appConfig.Path, appConfig.GenFilePath()))
 	if err != nil {
 		return err
 	}
 	reverseMatches := gohaskell.Reverse(matches)
-	err = WriteBody(stringifyMatch(reverseMatches), fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
+	err = WriteBody(stringifyMatch(reverseMatches), fmt.Sprintf("%s/%s", appConfig.Path, appConfig.GenFilePath()))
 	if err != nil {
 		return err
 	}
@@ -114,21 +111,21 @@ func GetBasicMatchInfo(appConfig *config.AppConfig, fixtures bool) error {
 }
 
 // use fixtures to setup url to either visit the results or fixtures page
-func GetHalfMatchInfo(appConfig *config.AppConfig, fixtures bool) error {
-	html, err := VisitSite(appConfig, fixtures)
+func GetHalfMatchInfo(appConfig *config.Config, fixtures bool) error {
+	html, err := VisitSite(context.Background(), appConfig, fixtures)
 	if err != nil {
 		return err
 	}
-	year, val := checkSeason(appConfig.Cfg.Season)
+	year, val := checkSeason(appConfig.Season)
 	matches := Generator2(html, year, val)
 	header := [9]string{"date", "homeTeam", "awayTeam", "homeScore 1st half", "awayScore 1st half", "homeScore 2nd half", "awayScore 2nd half", "homeScore", "awayScore"}
-	err = writeHeader(header[:], fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
+	err = writeHeader(header[:], fmt.Sprintf("%s/%s", appConfig.Path, appConfig.GenFilePath()))
 	if err != nil {
 		return err
 	}
 
 	reverseMatches := gohaskell.Reverse(matches)
-	err = WriteBody(stringifyMatch2(reverseMatches), fmt.Sprintf("%s/%s", appConfig.Cfg.Path, appConfig.Cfg.GenFilePath()))
+	err = WriteBody(stringifyMatch2(reverseMatches), fmt.Sprintf("%s/%s", appConfig.Path, appConfig.GenFilePath()))
 	if err != nil {
 		return err
 	}

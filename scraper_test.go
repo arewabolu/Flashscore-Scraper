@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"os"
 	"runtime"
@@ -164,16 +163,10 @@ func Test2HalvesData(t *testing.T) {
 	cfg.SetCountry("portugal")
 	cfg.SetSport("football")
 	cfg.SetLeague("liga-portugal")
-	cfg.SetSeason("2023-2024")
+	cfg.SetSeason("2015-2016")
 	cfg.TimeOut = 100
 	//cfg.TimeOut = 100
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	})
-	logger := slog.New(handler)
-	appCfg := config.NewAppConfig(*cfg)
-	appCfg.Log = logger
-	html, err := scraper.VisitSite(appCfg, true)
+	html, err := scraper.VisitSite(cfg, false)
 	if err != nil {
 		t.Error(err)
 		return
@@ -182,7 +175,8 @@ func Test2HalvesData(t *testing.T) {
 	splitYear := strings.Split(cfg.Season, "-")
 	matches := scraper.Generator(html, splitYear[0], true)
 	reverse := gohaskell.Reverse(matches)
-	t.Error(reverse[10].String())
+	t.Error(len(reverse))
+	t.Error(gohaskell.Last(reverse))
 	//dom := scraper.GenerateDOM(html)
 	//data := scraper.ParseDom(dom)
 	//t.Error(data)

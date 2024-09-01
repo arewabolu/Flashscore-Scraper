@@ -35,16 +35,14 @@ func main() {
 
 	flag.Parse()
 
-	appConfig := &config.AppConfig{
-		Cfg: cfg,
-		Log: logger,
-	}
-
 	switch {
 	case detailed:
 		//scraper.GetMatchesWithExtraData(appConfig)
 	default:
-		scraper.GetBasicMatchInfo(appConfig, fixtures)
+		err := scraper.GetBasicMatchInfo(cfg, fixtures)
+		if err != nil {
+			logger.Error(err.Error())
+		}
 	}
 
 }
