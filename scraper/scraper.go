@@ -27,7 +27,7 @@ const (
 
 var browserDatabase = database() + "broser-store" + string(filepath.Separator)
 
-func StartUpBrowser(ctx context.Context, appConfig *config.Config) context.Context {
+func StartUpBrowser(ctx context.Context) context.Context {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.UserDataDir(browserDatabase),
 	)
