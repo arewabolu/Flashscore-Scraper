@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,41 @@ import (
 	"github.com/gocolly/colly"
 )
 
+func createMatchWithQuery(day, month, year string, s *goquery.Selection) match {
+	gData := match{
+		Date:     day + "." + month + "." + year,
+		Hometeam: strings.TrimSuffix(strings.ToUpper(removeCountry(s.Find("div.event__participant--home").Text())), "WINNER"),
+		Awayteam: strings.TrimSuffix(strings.ToUpper(removeCountry(s.Find("div.event__participant--away").Text())), "WINNER"),
+		HomeGoal: s.Find("div.event__score--home").Text(),
+		AwayGoal: s.Find("div.event__score--away").Text(),
+	}
+	if gData.Hometeam == "" {
+		gData.Hometeam = strings.TrimSuffix(strings.ToUpper(removeCountry(s.Find("div.event__homeParticipant").Text())), "WINNER")
+	}
+	if gData.Awayteam == "" {
+		gData.Awayteam = strings.TrimSuffix(strings.ToUpper(removeCountry(s.Find("div.event__awayParticipant").Text())), "WINNER")
+	}
+
+	return gData
+}
+
+func doNormalMatchGenerator(year string, doc *goquery.Document) []match {
+	matches := make([]match, 0)
+	doc.Find("div.sportName").Each(func(i int, s *goquery.Selection) {
+		s.Find("div.event__match").Each(func(i int, s *goquery.Selection) {
+			tm := s.Find("div.event__time").Text() + "." + year
+			splitTM := strings.Split(tm, ".")
+			day := splitTM[0]
+			monthStr := splitTM[1]
+			match := createMatchWithQuery(day, monthStr, year, s)
+			fmt.Println(match)
+			matches = append(matches, match)
+		})
+	})
+	return matches
+
+}
+
 func Generator(html, year string, summerStart bool) []match {
 	buf := bytes.NewBufferString(html)
 	query, err := goquery.NewDocumentFromReader(buf)
@@ -20,48 +56,43 @@ func Generator(html, year string, summerStart bool) []match {
 		panic(err)
 	}
 	matches := make([]match, 0)
-	yearInt, err := strconv.Atoi(year)
-	if err != nil {
-		panic(err)
-	}
-	if summerStart {
-		year = fmt.Sprint(yearInt + 1)
-	}
-	query.Find("div.sportName").Each(func(i int, s *goquery.Selection) {
-		s.Find("div.event__match").Each(func(i int, s *goquery.Selection) {
-			tm := s.Find("div.event__time").Text()
-			splitTM := strings.Split(tm, ".")
-			day := splitTM[0]
-			monthStr := splitTM[1]
-			monthInt, _ := strconv.Atoi(monthStr)
-			if len(matches) > 0 {
-				splitDates := strings.Split(matches[len(matches)-1].Date, ".")
-				oldMonthInt, _ := strconv.Atoi(splitDates[1])
+	switch {
+	case !summerStart:
+		matches := doNormalMatchGenerator(year, query)
+		slices.Reverse(matches)
+		return matches
+	case summerStart:
+		yearInt, err := strconv.Atoi(year)
+		if err != nil {
+			return []match{}
+		}
+		query.Find("div.sportName").Each(func(i int, s *goquery.Selection) {
+			s.Find("div.event__match").Each(func(i int, s *goquery.Selection) {
+				tm := s.Find("div.event__time").Text()
+				splitTM := strings.Split(tm, ".")
+				day := splitTM[0]
+				monthStr := splitTM[1]
+				monthInt, _ := strconv.Atoi(monthStr)
 
-				if oldMonthInt >= 1 && oldMonthInt <= 3 {
-					if monthInt >= 10 && monthInt <= 12 {
-						year = fmt.Sprint(yearInt)
-					}
+				switch {
+				case monthInt >= 7 && monthInt <= 12:
+					match := createMatchWithQuery(day, monthStr, year, s)
+					matches = append(matches, match)
+				case monthInt >= 1 && monthInt < 7:
+					match := createMatchWithQuery(day, monthStr, fmt.Sprint(yearInt+1), s)
+					matches = append(matches, match)
 				}
-			}
-
-			nwTM := day + "." + splitTM[1] + "." + year
-			match := match{
-				Date:     nwTM,
-				Hometeam: removeCountry(s.Find("div.event__participant--home").Text()),
-				Awayteam: removeCountry(s.Find("div.event__participant--away").Text()),
-				HomeGoal: s.Find("div.event__score--home").Text(),
-				AwayGoal: s.Find("div.event__score--away").Text(), //
-			}
-
-			matches = append(matches, match)
+			})
 		})
-	})
-	matches2 := gohaskell.Reverse(matches)
+	}
+	slices.Reverse(matches)
 
-	return matches2
+	return matches
 }
 
+func ReverseGames() {
+
+}
 func Generator2(html, year string, summerStart bool) []halfMatch {
 	buf := bytes.NewBufferString(html)
 	query, err := goquery.NewDocumentFromReader(buf)
@@ -118,7 +149,7 @@ func Generator2(html, year string, summerStart bool) []halfMatch {
 	return matches2
 }
 
-func updater(league, year string) []match {
+func Updater(league, year string) []match {
 	//url := "https://www.soccer24.com/england/league-one-2020-2021/"
 	chanel := make(chan int, 2)
 	go getLastDate(league, chanel)
