@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -24,8 +25,22 @@ const (
 	DangerousAttacksIndex int = 14
 )
 
+var browserDatabase = database() + "broser-store" + string(filepath.Separator)
+
+func StartUpBrowser(ctx context.Context, appConfig *config.Config) context.Context {
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.UserDataDir(browserDatabase),
+	)
+	allocCtx, _ := chromedp.NewExecAllocator(ctx, opts...)
+
+	// Create a new browser context using the allocator context
+	browserCtx, _ := chromedp.NewContext(allocCtx)
+	return browserCtx
+}
+
 // use fixtures to setup url to either visit the results or fixtures page
-// Note: the context to be passed must be a chain of chromedp.Context.
+//
+// Note: the context to be passed must be a chain of chromedp.Contextt
 func VisitSite(ctx context.Context, appConfig *config.Config, fixtures bool) (string, error) {
 	showMoreAction :=
 		`
@@ -46,23 +61,25 @@ func VisitSite(ctx context.Context, appConfig *config.Config, fixtures bool) (st
 		`
 	newCtx, cancel := context.WithTimeout(ctx, time.Duration(appConfig.TimeOut)*time.Second)
 	defer cancel()
+	tabCtx, cancel := chromedp.NewContext(newCtx)
+	defer cancel()
 
 	var html string
 	var isElementPresent bool
 	url := appConfig.GenUrl(fixtures)
 
-	err := chromedp.Run(newCtx,
+	err := chromedp.Run(tabCtx,
 		// navigate to a page,
 		chromedp.Navigate(url),
 		// wait for footer element i.e, page is loaded
 		chromedp.WaitVisible(`body>footer`),
 	)
 	if err != nil {
-		return "", errors.Join(err, fmt.Errorf("%s could not load", url))
+		return "", fmt.Errorf("%v therfore %s could not load", err, url)
 	}
 	//evaluate javascript scroll and click
 	err = chromedp.Run(
-		newCtx,
+		tabCtx,
 		chromedp.Evaluate(showMoreAction, nil),
 	)
 	if err != nil {
@@ -71,12 +88,12 @@ func VisitSite(ctx context.Context, appConfig *config.Config, fixtures bool) (st
 
 	//wait for action to complete since async is not supported
 	time.Sleep(10 * time.Second)
-	err = chromedp.Run(newCtx, chromedp.Evaluate(`document.querySelector("a.event__more.event__more--static") !== null`, &isElementPresent))
+	err = chromedp.Run(tabCtx, chromedp.Evaluate(`document.querySelector("a.event__more.event__more--static") !== null`, &isElementPresent))
 	if err != nil {
 		return "", err
 	}
 
-	err = chromedp.Run(newCtx, chromedp.InnerHTML(`div.leagues--static`, &html, chromedp.AtLeast(1)))
+	err = chromedp.Run(tabCtx, chromedp.InnerHTML(`div.leagues--static`, &html, chromedp.AtLeast(1)))
 	if err != nil {
 		return "", err
 	}

@@ -1,12 +1,33 @@
 package scraper
 
 import (
+	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/arewabolu/csvmanager"
 )
+
+func init() {
+	if _, err := os.Stat(database()); os.IsNotExist(err) {
+		err := os.Mkdir(database(), os.ModePerm)
+		if err != nil {
+			if err != os.ErrExist {
+				panic(err)
+			}
+		}
+	}
+}
+
+func database() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return home + string(filepath.Separator) + "chromedp" + string(filepath.Separator)
+}
 
 func writeHeader(header []string, file string) error {
 	nwFile, err := os.OpenFile(file, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
